@@ -2,9 +2,8 @@ package net.subroh0508.animefacecollector
 
 import android.content.Context
 import android.graphics.BitmapFactory
-import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
-import android.widget.ImageView
+import android.support.v7.app.AppCompatActivity
 import kotlinx.android.synthetic.main.activity_main.*
 import net.subroh0508.animefacecollector.util.FaceDetector
 import java.io.File
@@ -13,21 +12,21 @@ import java.io.IOException
 import java.io.InputStream
 
 class MainActivity : AppCompatActivity() {
-    val detector by lazy { FaceDetector(setupCascadeFile())}
+    private val detector by lazy { FaceDetector(setupCascadeFile())}
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         // Example of a call to a native method
-        sample_text.text = stringFromJNI()
+        textView.text = stringFromJNI()
 
-        detect_button.setOnClickListener{ _ ->
-            liner_layout.addView(ImageView(this).apply{
-                val bitmap = BitmapFactory.decodeResource(resources, R.drawable.face_detect_test)
-                val bitmapDetected = detector.detect(bitmap)
-                if (bitmap != null) setImageBitmap(bitmapDetected)
-            })
+        detect.setOnClickListener{ _ ->
+            val bitmap = BitmapFactory.decodeResource(resources, R.drawable.face_detect_test).also {
+                detector.detect(it)
+            } ?: return@setOnClickListener
+
+            imageView.setImageBitmap(bitmap)
         }
     }
 
