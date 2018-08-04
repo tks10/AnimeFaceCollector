@@ -6,10 +6,7 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import kotlinx.android.synthetic.main.activity_main.*
 import net.subroh0508.animefacecollector.util.FaceDetector
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
-import java.io.InputStream
+import java.io.*
 
 class MainActivity : AppCompatActivity() {
     private val detector by lazy { FaceDetector(setupCascadeFile())}
@@ -22,11 +19,11 @@ class MainActivity : AppCompatActivity() {
         textView.text = stringFromJNI()
 
         detect.setOnClickListener{ _ ->
-            val bitmap = BitmapFactory.decodeResource(resources, R.drawable.face_detect_test).also {
+            val detectedBitmap = BitmapFactory.decodeResource(resources, R.drawable.face_detect_test).let {
                 detector.detect(it)
             } ?: return@setOnClickListener
 
-            imageView.setImageBitmap(bitmap)
+            imageView.setImageBitmap(detectedBitmap)
         }
     }
 
@@ -43,46 +40,31 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupCascadeFile(): File? {
-        val cascadeDir = getDir("cascade", Context.MODE_PRIVATE)
-        var cascadeFile: File? = null
-        var `is`: InputStream? = null
-        var os: FileOutputStream? = null
-        try {
-            cascadeFile = File(cascadeDir, "lbpcascade_frontalface.xml")
-            if (!cascadeFile!!.exists()) {
-                `is` = getResources().openRawResource(R.raw.lbpcascade_animeface)
-                os = FileOutputStream(cascadeFile)
-                val buffer = ByteArray(4096)
-                var readLen = 0
-                do {
-                    readLen = `is`!!.read(buffer)
-                    if (readLen == -1){
-                        break
-                    }
-                    os!!.write(buffer, 0, readLen)
-                } while(true)
-            }
+    private fun setupCascadeFile(xmlFileName: String = "lbpcascade_frontalface.xml"): File? {
+        val cascadeFile = File(
+                getDir("cascade", Context.MODE_PRIVATE),
+                xmlFileName
+        ).takeIf(File::exists) ?: throw FileNotFoundException("File: $xmlFileName not found")
+
+        val inputStream: InputStream = resources.openRawResource(R.raw.lbpcascade_animeface)
+        val outputStream = FileOutputStream(cascadeFile)
+
+        return try {
+            val buffer = ByteArray(4096)
+            do {
+                val readLen = inputStream.read(buffer)
+                if (readLen == -1){
+                    break
+                }
+                outputStream.write(buffer, 0, readLen)
+            } while(true)
+
+            inputStream.close()
+            outputStream.close()
+
+            cascadeFile
         } catch (e: IOException) {
-            return null
-        } finally {
-            if (`is` != null) {
-                try {
-                    `is`!!.close()
-                } catch (e: Exception) {
-                    // do nothing
-                }
-
-            }
-            if (os != null) {
-                try {
-                    os!!.close()
-                } catch (e: Exception) {
-                    // do nothing
-                }
-
-            }
+            null
         }
-        return cascadeFile
     }
 }
